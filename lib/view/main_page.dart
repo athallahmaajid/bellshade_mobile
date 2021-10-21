@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:bellshade_mobile/model/leaderboard.dart';
 import 'package:http/http.dart' as http;
+import 'package:bellshade_mobile/view/pr_details.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({Key? key}) : super(key: key);
@@ -14,7 +15,7 @@ class _MainPageState extends State<MainPage> {
   late PRLeaderboard prLeaderboard;
 
   Future<void> fetchPRLeaderboard() async {
-    final response = await http.get(Uri.parse("https://bellshade-server.herokuapp.com/leaderboard/pr"));
+    final response = await http.get(Uri.parse("https://api.bellshade.org/leaderboard/pr"));
     prLeaderboard = PRLeaderboard.fromJson(jsonDecode(response.body));
   }
 
@@ -23,14 +24,15 @@ class _MainPageState extends State<MainPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).backgroundColor,
       appBar: AppBar(
-        title: const Text("Bellshade PRLeaderboard"),
+        title: const Text("Bellshade PR Leaderboard"),
       ),
-      body: SingleChildScrollView(
-        child: FutureBuilder(
-          future: fetchPRLeaderboard(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.done) {
-              return DataTable(
+      body: FutureBuilder(
+        future: fetchPRLeaderboard(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return SingleChildScrollView(
+              child: DataTable(
+                showCheckboxColumn: false,
                 columnSpacing: 0,
                 dataRowHeight: 56,
                 columns: [
@@ -54,9 +56,20 @@ class _MainPageState extends State<MainPage> {
                 rows: prLeaderboard.users
                     .map(
                       (e) => DataRow(
+                        onSelectChanged: (value) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PrDetails(pullRequests: e.pullRequests, username: e.name),
+                            ),
+                          );
+                        },
                         cells: [
                           DataCell(
-                            Text((prLeaderboard.users.indexOf(e) + 1).toString(), style: TextStyle(color: Theme.of(context).primaryColor)),
+                            Text(
+                              (prLeaderboard.users.indexOf(e) + 1).toString(),
+                              style: TextStyle(color: Theme.of(context).primaryColor),
+                            ),
                           ),
                           DataCell(
                             Container(
@@ -70,21 +83,27 @@ class _MainPageState extends State<MainPage> {
                             ),
                           ),
                           DataCell(
-                            Text(e.name, style: TextStyle(color: Theme.of(context).primaryColor)),
+                            Text(
+                              e.name,
+                              style: TextStyle(color: Theme.of(context).primaryColor),
+                            ),
                           ),
                           DataCell(
-                            Text(e.prCount.toString(), style: TextStyle(color: Theme.of(context).primaryColor)),
+                            Text(
+                              e.prCount.toString(),
+                              style: TextStyle(color: Theme.of(context).primaryColor),
+                            ),
                           ),
                         ],
                       ),
                     )
                     .toList(),
-              );
-            } else {
-              return const Center(child: CircularProgressIndicator());
-            }
-          },
-        ),
+              ),
+            );
+          } else {
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
       ),
     );
   }
